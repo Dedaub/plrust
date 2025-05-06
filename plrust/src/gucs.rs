@@ -32,6 +32,7 @@ pub(crate) static PLRUST_COMPILE_LINTS: GucSetting<Option<&'static CStr>> =
     GucSetting::<Option<&'static CStr>>::new(Some(DEFAULT_LINTS));
 pub(crate) static PLRUST_REQUIRED_LINTS: GucSetting<Option<&'static CStr>> =
     GucSetting::<Option<&'static CStr>>::new(None);
+pub(crate) static PLRUST_OFFLINE_MODE: GucSetting<bool> = GucSetting::<bool>::new(false);
 
 const PGRX_VERSION_FROM_BUILD_RS: &'static str = concat!(
     env!(
@@ -118,6 +119,15 @@ pub(crate) fn init() {
         GucContext::Sighup,
         GucFlags::default(),
     );
+
+    GucRegistry::define_bool_guc(
+        "plrust.offline_mode",
+        "Run cargo in offline mode",
+        "If unspecified, the default is false",
+        &PLRUST_OFFLINE_MODE,
+        GucContext::Userset,
+        GucFlags::default(),
+    );
 }
 
 pub(crate) fn work_dir() -> PathBuf {
@@ -141,6 +151,10 @@ pub(crate) fn tracing_level() -> tracing::Level {
                 .expect("plrust.tracing_level was invalid")
         })
         .unwrap_or(tracing::Level::INFO)
+}
+
+pub(crate) fn offline_mode() -> bool {
+    PLRUST_OFFLINE_MODE.get()
 }
 
 /// Returns the compilation targets a function should be compiled for.

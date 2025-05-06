@@ -101,6 +101,8 @@ pub(crate) unsafe fn evaluate_function(
 pub(crate) fn compile_function(fn_oid: pg_sys::Oid) -> eyre::Result<Output> {
     let work_dir = gucs::work_dir();
     let target_dir = work_dir.join("target");
+
+    let offline_mode = gucs::offline_mode();
     // SAFETY: Postgres globally sets this to `const InvalidOid`, so is always read-safe,
     // then writes it only during initialization, so we should not be racing anyone.
     let db_oid = unsafe { MyDatabaseId };
@@ -110,7 +112,7 @@ pub(crate) fn compile_function(fn_oid: pg_sys::Oid) -> eyre::Result<Output> {
     // We want to introduce validation here.
     let crate_dir = provisioned.crate_dir().to_path_buf();
     let (validated, _output) = provisioned.validate(target_dir.as_path())?;
-    let target_builds = validated.build(target_dir.as_path())?;
+    let target_builds = validated.build(target_dir.as_path(), offline_mode)?;
 
     // we gotta have at least one built crate and it's for this host's target triple
     assert!(target_builds.len() >= 1);
