@@ -40,7 +40,7 @@ pub(crate) struct FnBuild {
 impl CrateState for FnBuild {}
 
 impl FnBuild {
-    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = %db_oid, fn_oid = %fn_oid, crate_name = %crate_name, crate_dir = %crate_dir.display()))]
+    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = ?db_oid, fn_oid = ?fn_oid, crate_name = %crate_name, crate_dir = %crate_dir.display()))]
     pub(crate) fn new(
         generation_number: u64,
         db_oid: pg_sys::Oid,
@@ -66,8 +66,8 @@ impl FnBuild {
         level = "debug",
         skip_all,
         fields(
-            db_oid = %self.db_oid,
-            fn_oid = %self.fn_oid,
+            db_oid = ?self.db_oid,
+            fn_oid = ?self.fn_oid,
             crate_dir = %self.crate_dir.display(),
             target_dir = tracing::field::display(target_dir.display()),
         ))]
@@ -89,8 +89,8 @@ impl FnBuild {
         level = "debug",
         skip_all,
         fields(
-            db_oid = %self.db_oid,
-            fn_oid = %self.fn_oid,
+            db_oid = ?self.db_oid,
+            fn_oid = ?self.fn_oid,
             crate_dir = %self.crate_dir.display(),
             target_dir = tracing::field::display(cargo_target_dir.display()),
             target_triple = %target_triple,

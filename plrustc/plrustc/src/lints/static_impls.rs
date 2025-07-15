@@ -14,12 +14,10 @@ impl<'tcx> LateLintPass<'tcx> for PlrustStaticImpls {
             return;
         };
         if self.has_static(imp.self_ty) {
-            cx.lint(
-                PLRUST_STATIC_IMPLS,
-                "`impl` blocks for types containing `'static` references \
-                are not allowed in PL/Rust",
-                |b| b.set_span(imp.self_ty.span),
-            )
+            cx.lint(PLRUST_STATIC_IMPLS, |diag| {
+                diag.primary_message("`impl` blocks for types containing `'static` references are not allowed in PL/Rust");
+                diag.span(imp.self_ty.span);
+            })
         }
     }
 }
@@ -46,7 +44,11 @@ impl PlrustStaticImpls {
             // TAIT stuff, still unstable at the moment, seems very hard to
             // prevent this for...
             | TyKind::OpaqueDef(..)
-            | TyKind::Never => false,
+            | TyKind::Never
+            // New variants in Rust 1.80.0
+            | TyKind::InferDelegation(..)
+            | TyKind::AnonAdt(..)
+            | TyKind::Pat(..) => false,
             // Found one!
             TyKind::Ref(Lifetime { res: Static, .. }, _) | TyKind::TraitObject(_, Lifetime { res: Static, .. }, _) => true,
             // Need to keep looking.
@@ -59,7 +61,7 @@ impl PlrustStaticImpls {
 
             TyKind::TraitObject(polytrait, ..) => {
                 polytrait.iter().any(|poly| {
-                    self.segments_have_static(poly.trait_ref.path.segments)
+                    self.segments_have_static(poly.0.trait_ref.path.segments)
                 })
             }
             // Something like `Vec<T>` or `Option<T>`. Need to look inside...

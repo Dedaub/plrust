@@ -12,11 +12,12 @@ rustc_lint_defs::declare_lint_pass!(PlrustAutoTraitImpls => [PLRUST_AUTOTRAIT_IM
 impl<'tcx> LateLintPass<'tcx> for PlrustAutoTraitImpls {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item<'tcx>) {
         fn trigger(cx: &LateContext<'_>, span: Span) {
-            cx.lint(
-                PLRUST_AUTOTRAIT_IMPLS,
-                "explicit implementations of auto traits are forbidden in PL/Rust",
-                |b| b.set_span(span),
-            );
+            cx.lint(PLRUST_AUTOTRAIT_IMPLS, |diag| {
+                diag.primary_message(
+                    "explicit implementations of auto traits are forbidden in PL/Rust",
+                );
+                diag.span(span);
+            });
         }
         let hir::ItemKind::Impl(imp) = &item.kind else {
             return;

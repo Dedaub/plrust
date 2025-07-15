@@ -15,12 +15,17 @@ pub use ::pgrx::{
     debug1, debug2, debug3, debug4, debug5, ereport, error, info, log, notice, warning,
 };
 
+#[doc(hidden)]
+pub use ::pgrx::pgrx_macros::pg_extern;
+
 pub use datum::*;
 
 /// Safe Rust wrappers for various Postgres types.
 pub mod datum {
     // traits
     pub use ::pgrx::datum::{FromDatum, IntoDatum};
+
+    pub use ::pgrx::datum::{BorrowDatum, Datum, UnboxDatum};
 
     // dates & times
     pub use ::pgrx::datum::{
@@ -51,6 +56,14 @@ pub mod datum {
 
     // others
     pub use ::pgrx::pg_sys::Oid;
+}
+
+#[doc(hidden)]
+pub use callconv::*;
+#[doc(hidden)]
+pub mod callconv {
+    pub use ::pgrx::callconv::{Arg, ArgAbi, BoxRet, CallCx, FcInfo, RetAbi};
+    pub use ::pgrx::callconv::{Args, ReturnSetInfoWrapper};
 }
 
 pub use fn_call::{fn_call, Arg, FnCallArg, FnCallError};
@@ -116,6 +129,7 @@ pub mod pg_sys {
     pub use ::pgrx::pg_sys::FuncCallContext;
     #[doc(hidden)]
     pub use ::pgrx::pg_sys::FunctionCallInfo;
+    pub use ::pgrx::pg_sys::NullableDatum;
     #[doc(hidden)]
     pub use ::pgrx::pg_sys::Pg_finfo_record;
     pub use ::pgrx::pg_sys::{BuiltinOid, PgBuiltInOids};

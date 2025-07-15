@@ -221,7 +221,7 @@ pub(crate) fn create_or_replace_function(
 /// procedure object id and the `target_triple` of the host.
 #[tracing::instrument(level = "debug")]
 pub(crate) fn load(pg_proc_oid: pg_sys::Oid) -> eyre::Result<Rc<UserCrate<FnReady>>> {
-    tracing::debug!("loading function oid `{pg_proc_oid}`");
+    tracing::debug!("loading function oid `{pg_proc_oid:?}`");
     let pg_proc = PgProc::new(pg_proc_oid)?;
     let mut entry = ProSrcEntry::try_from(&pg_proc)?;
     let this_target = target::tuple()?;

@@ -55,7 +55,7 @@ impl FnLoad {
         (self.target, self.shared_object, self.lints)
     }
 
-    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = % self.db_oid, fn_oid = % self.fn_oid))]
+    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = ?self.db_oid, fn_oid = ?self.fn_oid))]
     pub(crate) unsafe fn validate(self) -> eyre::Result<FnValidate> {
         FnValidate::new(
             self.generation_number,

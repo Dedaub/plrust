@@ -38,7 +38,7 @@ pub(crate) struct FnReady {
 }
 
 impl FnReady {
-    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = %db_oid, fn_oid = %fn_oid))]
+    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = ?db_oid, fn_oid = ?fn_oid))]
     pub(crate) unsafe fn load(
         generation_number: u64,
         db_oid: pg_sys::Oid,
@@ -59,7 +59,9 @@ impl FnReady {
 
             let mfd = memfd::MemfdOptions::default()
                 .allow_sealing(true)
-                .create(&format!("plrust-fn-{db_oid}-{fn_oid}-{generation_number}"))?;
+                .create(&format!(
+                    "plrust-fn-{db_oid:?}-{fn_oid:?}-{generation_number:?}"
+                ))?;
 
             // set the filesize to exactly what we know it should be
             mfd.as_file().set_len(shared_object.len() as u64)?;

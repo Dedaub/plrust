@@ -70,15 +70,16 @@ fi
 # and doing so risks clobbering their configuration.
 # If they get an error, it's fairly self-explanatory.
 
-(
-    if cd postgrestd; then
-        git pull
-        git submodule update --init --recursive
-    else
-        git clone https://github.com/tcdi/postgrestd.git --branch "rust-1.72.0" --recurse-submodules
-        cd ./postgrestd
-    fi
-    rm -f rust-toolchain.toml
-    STD_TARGETS="$STD_TARGETS" ./run clean
-    STD_TARGETS="$STD_TARGETS" ./run install
-)
+# We don't try to build postgrestd, because it fails with Rust 1.82.0.
+#(
+#    if cd postgrestd; then
+#        git pull
+#        git submodule update --init --recursive
+#    else
+#        git clone https://github.com/tcdi/postgrestd.git --branch "rust-1.82.0" --recurse-submodules
+#        cd ./postgrestd
+#    fi
+#    rm -f rust-toolchain.toml
+#    STD_TARGETS="$STD_TARGETS" ./run clean
+#    STD_TARGETS="$STD_TARGETS" ./run install
+#)

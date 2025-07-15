@@ -54,7 +54,7 @@ unsafe extern "C" fn plrust_process_utility_hook(
     pstmt: *mut pg_sys::PlannedStmt,
     query_string: *const ::std::os::raw::c_char,
     read_only_tree: bool,
-    context: pg_sys::ProcessUtilityContext,
+    context: pg_sys::ProcessUtilityContext::Type,
     params: pg_sys::ParamListInfo,
     query_env: *mut pg_sys::QueryEnvironment,
     dest: *mut pg_sys::DestReceiver,
@@ -77,7 +77,7 @@ fn plrust_process_utility_hook_internal(
     pstmt: *mut pg_sys::PlannedStmt,
     query_string: *const ::std::os::raw::c_char,
     read_only_tree: bool,
-    context: pg_sys::ProcessUtilityContext,
+    context: pg_sys::ProcessUtilityContext::Type,
     params: pg_sys::ParamListInfo,
     query_env: *mut pg_sys::QueryEnvironment,
     dest: *mut pg_sys::DestReceiver,
@@ -132,7 +132,7 @@ fn call_prev_hook(
 
     // this isn't by pg13 but we need it here in the argument list anyways
     #[allow(unused_variables)] read_only_tree: bool,
-    context: pg_sys::ProcessUtilityContext,
+    context: pg_sys::ProcessUtilityContext::Type,
     params: pg_sys::ParamListInfo,
     query_env: *mut pg_sys::QueryEnvironment,
     dest: *mut pg_sys::DestReceiver,

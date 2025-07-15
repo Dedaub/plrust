@@ -2,7 +2,7 @@
 #   docker build -f Dockerfile.try -t tcdi/try-plrust . # Build the container
 #   docker run -it tcdi/try-plrust # Run the container
 
-FROM postgres:15-bullseye
+FROM postgres:17-bullseye
 
 SHELL ["/bin/bash", "-c"]
 
@@ -29,7 +29,7 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
         llvm-11 \
         make \
         ruby \
-        postgresql-server-dev-15 \
+        postgresql-server-dev-17 \
         pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
@@ -40,7 +40,7 @@ RUN chmod a+rwx `$(which pg_config) --pkglibdir` `$(which pg_config) --sharedir`
 # and install toml so TOML files can be parsed later
 RUN gem install --no-document fpm toml
 
-# The 'postgres' user is the default user that the official postgres:15-bullseye image sets up
+# The 'postgres' user is the default user that the official postgres:17-bullseye image sets up
 USER postgres
 ENV USER postgres
 
@@ -68,9 +68,9 @@ RUN PGRX_VERSION=$(cargo metadata --format-version 1 | jq -r '.packages[]|select
     cargo install cargo-pgrx --locked --force --version "$PGRX_VERSION" && \
     rustup component add llvm-tools-preview rustc-dev && \
     cd /src/plrustc && ./build.sh && cp ../build/bin/plrustc ~/.cargo/bin && \
-    cargo pgrx init --pg15 $(which pg_config) && \
+    cargo pgrx init --pg17 $(which pg_config) && \
     cd /src/plrust && STD_TARGETS="$(uname -m)-postgres-linux-gnu" ./build && \
-    cargo pgrx install --release --features trusted && \
+    PLRUST_TRUSTED_PGRX_OVERRIDE="pgrx = { path = '/src/plrust-trusted-pgrx', package='plrust-trusted-pgrx' }" cargo pgrx install --release && \
     cd /src && find . -type d -name target | xargs rm -r && \
     rustup component remove llvm-tools-preview rustc-dev
 
@@ -89,18 +89,18 @@ RUN chmod 0755 `$(which pg_config) --pkglibdir` && \
 USER postgres
 
 # Create initial main database
-RUN pg_createcluster 15 main
+RUN pg_createcluster 17 main
 
 # NOTE: Heredocs do not work in older versions of Docker, so multiple 'echo' lines
 # will be used in various places in this Dockerfile.
 
 # Set up host based auth. *DO NOT* use this in production!
-RUN echo 'local all all trust' > /etc/postgresql/15/main/pg_hba.conf && \
-    echo 'host all all 0.0.0.0/0 trust' >> /etc/postgresql/15/main/pg_hba.conf
+RUN echo 'local all all trust' > /etc/postgresql/17/main/pg_hba.conf && \
+    echo 'host all all 0.0.0.0/0 trust' >> /etc/postgresql/17/main/pg_hba.conf
 
 # Set up plrust configuration options
-RUN echo "shared_preload_libraries='plrust'" >> /etc/postgresql/15/main/postgresql.conf && \
-    echo "plrust.work_dir='/tmp'" >>/etc/postgresql/15/main/postgresql.conf
+RUN echo "shared_preload_libraries='plrust'" >> /etc/postgresql/17/main/postgresql.conf && \
+    echo "plrust.work_dir='/tmp'" >>/etc/postgresql/17/main/postgresql.conf
 
 # Set up custom prompt
 RUN echo "\set PROMPT1 '%/(plrust)=# '" >> ~/.psqlrc && \
@@ -135,7 +135,7 @@ RUN echo 'echo "Starting Postgresql service..."' >> ~/scripts/server && \
     echo 'service postgresql stop' >> ~/scripts/server && \
     echo 'echo "Starting Postgresql in the foreground"' >> ~/scripts/server && \
     echo 'echo ""' >> ~/scripts/server && \
-    echo 'postgres -D /etc/postgresql/15/main/' >> ~/scripts/server
+    echo 'postgres -D /etc/postgresql/17/main/' >> ~/scripts/server
 
 RUN chmod +x ~/scripts/server
 

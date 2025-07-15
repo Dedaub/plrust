@@ -11,12 +11,13 @@ rustc_lint_defs::declare_lint_pass!(PlrustAsync => [PLRUST_ASYNC]);
 
 impl EarlyLintPass for PlrustAsync {
     fn check_expr(&mut self, cx: &EarlyContext, expr: &ast::Expr) {
-        if let ast::ExprKind::Async(..) | ast::ExprKind::Await(..) = &expr.kind {
-            cx.lint(
-                PLRUST_ASYNC,
-                "Use of async/await is forbidden in PL/Rust",
-                |b| b.set_span(expr.span),
-            );
+        if let ast::ExprKind::Gen(_, _, ast::GenBlockKind::Async, _) | ast::ExprKind::Await(..) =
+            &expr.kind
+        {
+            cx.lint(PLRUST_ASYNC, |diag| {
+                diag.primary_message("Use of async/await is forbidden in PL/Rust");
+                diag.span(expr.span);
+            });
         }
     }
     fn check_fn(
@@ -27,12 +28,11 @@ impl EarlyLintPass for PlrustAsync {
         _: ast::NodeId,
     ) {
         if let Some(h) = kind.header() {
-            if h.asyncness.is_async() {
-                cx.lint(
-                    PLRUST_ASYNC,
-                    "Use of async/await is forbidden in PL/Rust",
-                    |b| b.set_span(span),
-                );
+            if let Some(ast::CoroutineKind::Async { .. }) = h.coroutine_kind {
+                cx.lint(PLRUST_ASYNC, |diag| {
+                    diag.primary_message("Use of async/await is forbidden in PL/Rust");
+                    diag.span(span);
+                });
             }
         }
     }

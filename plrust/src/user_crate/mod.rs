@@ -126,8 +126,8 @@ impl UserCrate<FnVerify> {
         level = "debug",
         skip_all,
         fields(
-            db_oid = %self.0.db_oid(),
-            fn_oid = %self.0.fn_oid(),
+            db_oid = ?self.0.db_oid(),
+            fn_oid = ?self.0.fn_oid(),
             crate_dir = %self.0.crate_dir().display(),
             target_dir = tracing::field::display(target_dir.display()),
         ))]
@@ -147,8 +147,8 @@ impl UserCrate<FnBuild> {
         level = "debug",
         skip_all,
         fields(
-            db_oid = %self.0.db_oid(),
-            fn_oid = %self.0.fn_oid(),
+            db_oid = ?self.0.db_oid(),
+            fn_oid = ?self.0.fn_oid(),
             crate_dir = %self.0.crate_dir().display(),
             target_dir = tracing::field::display(target_dir.display()),
         ))]
@@ -222,7 +222,7 @@ impl UserCrate<FnReady> {
     }
 }
 
-#[tracing::instrument(level = "debug", skip_all, fields(type_oid = %type_oid.value()))]
+#[tracing::instrument(level = "debug", skip_all, fields(type_oid = ?type_oid.value()))]
 pub(crate) fn oid_to_syn_type(
     type_oid: &PgOid,
     owned: bool,

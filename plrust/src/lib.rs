@@ -93,7 +93,6 @@ const DEFAULT_LINTS: &'static CStr = unsafe {
         b"\
     plrust_extern_blocks, \
     plrust_lifetime_parameterized_traits, \
-    implied_bounds_entailment, \
     plrust_autotrait_impls, \
     plrust_closure_trait_impl, \
     plrust_static_impls, \
@@ -108,8 +107,6 @@ const DEFAULT_LINTS: &'static CStr = unsafe {
     plrust_suspicious_trait_object, \
     unsafe_code, \
     deprecated, \
-    suspicious_auto_trait_impls, \
-    where_clauses_object_safety, \
     soft_unstable\
 \0", // NOTE:  This is a null-terminated string as it's used statically as a &CStr
     )
@@ -166,12 +163,11 @@ fn _PG_init() {
 
 /// `pgrx` doesn't know how to declare a CREATE FUNCTION statement for a function
 /// whose only argument is a `pg_sys::FunctionCallInfo`, so we gotta do that ourselves.
-#[pg_extern(sql = "
-CREATE FUNCTION plrust_call_handler() RETURNS language_handler
-    LANGUAGE c AS 'MODULE_PATHNAME', '@FUNCTION_NAME@';
-")]
+/// We declare this as a plain extern "C" function to bypass pgrx's return value processing
+/// which would interfere with the language handler's return value mechanism.
+#[no_mangle]
 #[tracing::instrument(level = "debug")]
-unsafe fn plrust_call_handler(fcinfo: pg_sys::FunctionCallInfo) -> pg_sys::Datum {
+pub unsafe extern "C" fn plrust_call_handler(fcinfo: pg_sys::FunctionCallInfo) -> pg_sys::Datum {
     unsafe fn plrust_call_handler_inner(
         fcinfo: pg_sys::FunctionCallInfo,
     ) -> eyre::Result<pg_sys::Datum> {
@@ -187,6 +183,7 @@ unsafe fn plrust_call_handler(fcinfo: pg_sys::FunctionCallInfo) -> pg_sys::Datum
         .ok_or(PlRustError::NullFmgrInfo)?
         .fn_oid;
         let retval = unsafe { plrust::evaluate_function(fn_oid, fcinfo)? };
+
         Ok(retval)
     }
 
@@ -198,24 +195,36 @@ unsafe fn plrust_call_handler(fcinfo: pg_sys::FunctionCallInfo) -> pg_sys::Datum
     }
 }
 
+// Required for PostgreSQL to recognize the function
+// This provides the function metadata that #[pg_extern] would normally generate
+#[no_mangle]
+pub extern "C" fn pg_finfo_plrust_call_handler() -> &'static pg_sys::Pg_finfo_record {
+    const V1_API: pg_sys::Pg_finfo_record = pg_sys::Pg_finfo_record { api_version: 1 };
+    &V1_API
+}
+
+// Manually declare the SQL function since we're not using #[pg_extern]
+extension_sql!(
+    r#"
+CREATE FUNCTION plrust_call_handler() RETURNS language_handler
+    LANGUAGE c AS 'MODULE_PATHNAME', 'plrust_call_handler';
+"#,
+    name = "plrust_call_handler"
+);
+
 #[pg_extern]
-fn allowed_dependencies<'a>() -> Result<
-    Option<
-        ::pgrx::iter::TableIterator<
-            'a,
-            (
-                name!(name, String),
-                name!(version, String),
-                name!(features, Vec<String>),
-                name!(default_features, bool),
-            ),
-        >,
-    >,
-    Box<dyn std::error::Error + Send + Sync + 'static>,
+fn allowed_dependencies() -> ::pgrx::iter::TableIterator<
+    'static,
+    (
+        name!(name, String),
+        name!(version, String),
+        name!(features, Vec<String>),
+        name!(default_features, bool),
+    ),
 > {
     let allowed_dependencies: Vec<AllowedDependencyTuple> =
         allow_list::get_allowed_dependencies().into();
-    Ok(Some(TableIterator::new(allowed_dependencies)))
+    TableIterator::new(allowed_dependencies)
 }
 
 /// Called by Postgres, not you.
@@ -279,7 +288,7 @@ CREATE TRUSTED LANGUAGE plrust
 COMMENT ON LANGUAGE plrust IS 'Trusted PL/rust procedural language';
 "#,
     name = "language_handler",
-    requires = [plrust_call_handler, plrust_validator]
+    requires = ["plrust_call_handler", plrust_validator]
 );
 
 #[cfg(not(feature = "trusted"))]
@@ -298,5 +307,5 @@ END;
 $$;
 "#,
     name = "language_handler",
-    requires = [plrust_call_handler, plrust_validator]
+    requires = ["plrust_call_handler", plrust_validator]
 );
