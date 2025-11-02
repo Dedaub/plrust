@@ -89,7 +89,7 @@ RUN chmod 0755 `$(which pg_config) --pkglibdir` && \
 USER postgres
 
 # Create initial main database
-RUN pg_createcluster 17 main
+RUN pg_createcluster 18 main
 
 # NOTE: Heredocs do not work in older versions of Docker, so multiple 'echo' lines
 # will be used in various places in this Dockerfile.
