@@ -59,7 +59,7 @@ pub(crate) unsafe fn evaluate_function(
                 // This could be caused by (at least) the "OR REPLACE" bit of CREATE OR REPLACE or
                 // by an ALTER FUNCTION that changed one of the attributes of the function.
                 tracing::trace!(
-                    "Reloading function {fn_oid} due to change from concurrent session"
+                    "Reloading function {fn_oid:?} due to change from concurrent session"
                 );
 
                 // load the new function
@@ -72,7 +72,7 @@ pub(crate) unsafe fn evaluate_function(
                 // there's nothing we can do but carry on with the newly loaded version
                 if let Ok(old) = Rc::try_unwrap(old) {
                     if let Err(e) = old.close() {
-                        tracing::warn!("Failed to close the old version of function {fn_oid}.  Ignoring, and continuing with new version: {e}");
+                        tracing::warn!("Failed to close the old version of function {fn_oid:?}.  Ignoring, and continuing with new version: {e}");
                     }
                 }
             }
@@ -89,7 +89,7 @@ pub(crate) unsafe fn evaluate_function(
     })?;
 
     tracing::trace!(
-        "Evaluating symbol {:?} for function {}",
+        "Evaluating symbol {:?} for function {:?}",
         user_crate_loaded.symbol_name(),
         fn_oid
     );
@@ -101,6 +101,8 @@ pub(crate) unsafe fn evaluate_function(
 pub(crate) fn compile_function(fn_oid: pg_sys::Oid) -> eyre::Result<Output> {
     let work_dir = gucs::work_dir();
     let target_dir = work_dir.join("target");
+
+    let offline_mode = gucs::offline_mode();
     // SAFETY: Postgres globally sets this to `const InvalidOid`, so is always read-safe,
     // then writes it only during initialization, so we should not be racing anyone.
     let db_oid = unsafe { MyDatabaseId };
@@ -110,7 +112,7 @@ pub(crate) fn compile_function(fn_oid: pg_sys::Oid) -> eyre::Result<Output> {
     // We want to introduce validation here.
     let crate_dir = provisioned.crate_dir().to_path_buf();
     let (validated, _output) = provisioned.validate(target_dir.as_path())?;
-    let target_builds = validated.build(target_dir.as_path())?;
+    let target_builds = validated.build(target_dir.as_path(), offline_mode)?;
 
     // we gotta have at least one built crate and it's for this host's target triple
     assert!(target_builds.len() >= 1);

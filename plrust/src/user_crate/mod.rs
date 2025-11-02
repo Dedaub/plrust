@@ -126,8 +126,8 @@ impl UserCrate<FnVerify> {
         level = "debug",
         skip_all,
         fields(
-            db_oid = %self.0.db_oid(),
-            fn_oid = %self.0.fn_oid(),
+            db_oid = ?self.0.db_oid(),
+            fn_oid = ?self.0.fn_oid(),
             crate_dir = %self.0.crate_dir().display(),
             target_dir = tracing::field::display(target_dir.display()),
         ))]
@@ -147,15 +147,19 @@ impl UserCrate<FnBuild> {
         level = "debug",
         skip_all,
         fields(
-            db_oid = %self.0.db_oid(),
-            fn_oid = %self.0.fn_oid(),
+            db_oid = ?self.0.db_oid(),
+            fn_oid = ?self.0.fn_oid(),
             crate_dir = %self.0.crate_dir().display(),
             target_dir = tracing::field::display(target_dir.display()),
         ))]
-    pub fn build(self, target_dir: &Path) -> eyre::Result<Vec<(UserCrate<FnLoad>, Output)>> {
+    pub fn build(
+        self,
+        target_dir: &Path,
+        offline_mode: bool,
+    ) -> eyre::Result<Vec<(UserCrate<FnLoad>, Output)>> {
         Ok(self
             .0
-            .build(target_dir)?
+            .build(target_dir, offline_mode)?
             .into_iter()
             .map(|(state, output)| (UserCrate(state), output))
             .collect())
@@ -222,7 +226,7 @@ impl UserCrate<FnReady> {
     }
 }
 
-#[tracing::instrument(level = "debug", skip_all, fields(type_oid = %type_oid.value()))]
+#[tracing::instrument(level = "debug", skip_all, fields(type_oid = ?type_oid.value()))]
 pub(crate) fn oid_to_syn_type(
     type_oid: &PgOid,
     owned: bool,
@@ -633,7 +637,7 @@ e = ">=0.8, <0.9"
 
             let (validated, _output) = provisioned.validate(&target_dir)?;
 
-            for (built, _output) in validated.build(&target_dir)? {
+            for (built, _output) in validated.build(&target_dir, false)? {
                 // Without an fcinfo, we can't call this.
                 let validated = unsafe { built.validate()? };
                 let _loaded = unsafe { validated.load()? };

@@ -55,7 +55,7 @@ impl PgProc {
             // SAFETY:  SearchSysCache1 will give us a valid HeapTuple or it'll return null.
             // Either way, using NonNull::new()? will make the right decision for us
             let entry = pg_sys::SearchSysCache1(
-                pg_sys::SysCacheIdentifier_PROCOID as _,
+                pg_sys::SysCacheIdentifier::PROCOID as _,
                 pg_proc_oid.into_datum().unwrap(),
             );
             let inner = match NonNull::new(entry) {
@@ -216,7 +216,7 @@ impl PgProc {
             // and this PgProc type ensures we have a valid "arg_tup" pointer for the cache entry
             let mut is_null = false;
             let datum = pg_sys::SysCacheGetAttr(
-                pg_sys::SysCacheIdentifier_PROCOID as _,
+                pg_sys::SysCacheIdentifier::PROCOID as _,
                 self.inner.as_ptr(),
                 attribute as _,
                 &mut is_null,

@@ -17,18 +17,18 @@ rustc_lint_defs::declare_lint_pass!(PlrustBuiltinMacros => [PLRUST_FILESYSTEM_MA
 
 impl PlrustBuiltinMacros {
     fn lint_fs(&self, cx: &LateContext<'_>, sp: Span) {
-        cx.lint(
-            PLRUST_FILESYSTEM_MACROS,
-            "the `include_str`, `include_bytes`, and `include` macros are forbidden in PL/Rust",
-            |b| b.set_span(sp),
-        );
+        cx.lint(PLRUST_FILESYSTEM_MACROS, |diag| {
+            diag.primary_message(
+                "the `include_str`, `include_bytes`, and `include` macros are forbidden in PL/Rust",
+            );
+            diag.span(sp);
+        });
     }
     fn lint_env(&self, cx: &LateContext<'_>, sp: Span) {
-        cx.lint(
-            PLRUST_ENV_MACROS,
-            "the `env` and `option_env` macros are forbidden",
-            |b| b.set_span(sp),
-        );
+        cx.lint(PLRUST_ENV_MACROS, |diag| {
+            diag.primary_message("the `env` and `option_env` macros are forbidden");
+            diag.span(sp);
+        });
     }
     fn check_span(&mut self, cx: &LateContext<'_>, span: Span) {
         let fs_diagnostic_items = [

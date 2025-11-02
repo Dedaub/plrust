@@ -15,20 +15,20 @@ impl<'tcx> LateLintPass<'tcx> for PlrustFnPointer {
                 // TODO: ideally this would just be cases where they accept or
                 // return nested references, however doing so is tricky, as it must
                 // pierce through `&'a SomeStruct(&'b InternalRef)`.
-                cx.lint(
-                    PLRUST_FN_POINTERS,
-                    "Use of function pointers is forbidden in PL/Rust",
-                    |b| b.set_span(ty.span),
-                );
+                cx.lint(PLRUST_FN_POINTERS, |diag| {
+                    diag.primary_message("Use of function pointers is forbidden in PL/Rust");
+                    diag.span(ty.span);
+                });
             }
             hir::TyKind::TraitObject(traits, ..) => {
                 for poly_trait in *traits {
-                    if super::utils::has_fn_trait(cx, poly_trait) {
-                        cx.lint(
-                            PLRUST_FN_POINTERS,
-                            "Use of function trait objects is forbidden in PL/Rust",
-                            |b| b.set_span(ty.span),
-                        );
+                    if super::utils::has_fn_trait(cx, &poly_trait.0) {
+                        cx.lint(PLRUST_FN_POINTERS, |diag| {
+                            diag.primary_message(
+                                "Use of function trait objects is forbidden in PL/Rust",
+                            );
+                            diag.span(ty.span);
+                        });
                     }
                 }
             }

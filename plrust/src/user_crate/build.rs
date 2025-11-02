@@ -40,7 +40,7 @@ pub(crate) struct FnBuild {
 impl CrateState for FnBuild {}
 
 impl FnBuild {
-    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = %db_oid, fn_oid = %fn_oid, crate_name = %crate_name, crate_dir = %crate_dir.display()))]
+    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = ?db_oid, fn_oid = ?fn_oid, crate_name = %crate_name, crate_dir = %crate_dir.display()))]
     pub(crate) fn new(
         generation_number: u64,
         db_oid: pg_sys::Oid,
@@ -66,21 +66,30 @@ impl FnBuild {
         level = "debug",
         skip_all,
         fields(
-            db_oid = %self.db_oid,
-            fn_oid = %self.fn_oid,
+            db_oid = ?self.db_oid,
+            fn_oid = ?self.fn_oid,
             crate_dir = %self.crate_dir.display(),
             target_dir = tracing::field::display(target_dir.display()),
         ))]
-    pub(crate) fn build(self, target_dir: &Path) -> eyre::Result<Vec<(FnLoad, Output)>> {
+    pub(crate) fn build(
+        self,
+        target_dir: &Path,
+        offline_mode: bool,
+    ) -> eyre::Result<Vec<(FnLoad, Output)>> {
         let (this_target, cross_compilation_targets) = gucs::compilation_targets()?;
         let mut results = Vec::new();
 
         // always build for this host machine
-        results.push(self.build_internal(target_dir, this_target.clone(), None)?);
+        results.push(self.build_internal(target_dir, this_target.clone(), None, offline_mode)?);
 
         // and then do the others, which is guaranteed not to contain the exact same triple as `this_target`
         for target in cross_compilation_targets {
-            results.push(self.build_internal(target_dir, target.target(), Some(target))?);
+            results.push(self.build_internal(
+                target_dir,
+                target.target(),
+                Some(target),
+                offline_mode,
+            )?);
         }
         Ok(results)
     }
@@ -89,8 +98,8 @@ impl FnBuild {
         level = "debug",
         skip_all,
         fields(
-            db_oid = %self.db_oid,
-            fn_oid = %self.fn_oid,
+            db_oid = ?self.db_oid,
+            fn_oid = ?self.fn_oid,
             crate_dir = %self.crate_dir.display(),
             target_dir = tracing::field::display(cargo_target_dir.display()),
             target_triple = %target_triple,
@@ -101,6 +110,7 @@ impl FnBuild {
         cargo_target_dir: &Path,
         target_triple: CompilationTarget,
         cross_compilation_target: Option<CrossCompilationTarget>,
+        offline_mode: bool,
     ) -> eyre::Result<(FnLoad, Output)> {
         let mut command = cargo(cargo_target_dir, cross_compilation_target)?;
         set_plrustc_vars(&mut command, self, cargo_target_dir)?;
@@ -110,6 +120,10 @@ impl FnBuild {
         command.arg("--release");
         command.arg("--target");
         command.arg(&target_triple);
+
+        if offline_mode {
+            command.arg("--offline");
+        }
 
         let output = command.output().wrap_err("`cargo` execution failure")?;
 

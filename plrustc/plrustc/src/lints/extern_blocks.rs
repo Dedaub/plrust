@@ -12,11 +12,10 @@ impl<'tcx> LateLintPass<'tcx> for NoExternBlockPass {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item<'tcx>) {
         if let hir::ItemKind::ForeignMod { .. } = &item.kind {
             // TODO: Do we need to allow ones from macros from pgrx?
-            cx.lint(
-                PLRUST_EXTERN_BLOCKS,
-                "`extern` blocks are not allowed in PL/Rust",
-                |b| b.set_span(item.span),
-            )
+            cx.lint(PLRUST_EXTERN_BLOCKS, |diag| {
+                diag.primary_message("`extern` blocks are not allowed in PL/Rust");
+                diag.span(item.span);
+            })
         }
     }
 }

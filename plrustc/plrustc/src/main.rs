@@ -1,11 +1,12 @@
 #![feature(rustc_private)]
+#![allow(rustc::untranslatable_diagnostic)]
+#![allow(rustc::diagnostic_outside_of_impl)]
 extern crate rustc_ast;
 extern crate rustc_driver;
 extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_interface;
 
-extern crate rustc_error_messages;
 extern crate rustc_lint;
 extern crate rustc_lint_defs;
 extern crate rustc_middle;
@@ -13,11 +14,11 @@ extern crate rustc_session;
 extern crate rustc_span;
 
 use rustc_driver::Callbacks;
-use rustc_error_messages::DiagnosticMessage;
+use rustc_errors::DiagMessage;
 use rustc_interface::interface;
 use rustc_session::config::ErrorOutputType;
 use rustc_session::parse::ParseSess;
-use rustc_session::EarlyErrorHandler;
+use rustc_session::EarlyDiagCtxt;
 use rustc_span::source_map::FileLoader;
 use rustc_span::Symbol;
 use std::path::Path;
@@ -35,7 +36,7 @@ struct PlrustcCallbacks {
 impl Callbacks for PlrustcCallbacks {
     fn config(&mut self, config: &mut interface::Config) {
         let cfg = self.config.clone();
-        config.parse_sess_created = Some(Box::new(move |parse_sess| {
+        config.psess_created = Some(Box::new(move |parse_sess| {
             cfg.track(parse_sess);
         }));
         if self.lints_enabled {
@@ -52,11 +53,12 @@ impl Callbacks for PlrustcCallbacks {
 
 fn main() {
     rustc_driver::install_ice_hook("https://github.com/tcdi/plrust/issues/new", |_| ());
-    let handler = &EarlyErrorHandler::new(ErrorOutputType::default());
+    let handler = &EarlyDiagCtxt::new(ErrorOutputType::default());
     rustc_driver::init_rustc_env_logger(handler);
     std::process::exit(rustc_driver::catch_with_exit_code(move || {
         let args =
-            rustc_driver::args::arg_expand_all(handler, &std::env::args().collect::<Vec<_>>());
+            rustc_driver::args::arg_expand_all(handler, &std::env::args().collect::<Vec<_>>())
+                .unwrap_or_else(|_| std::process::exit(1));
         let config = PlrustcConfig::from_env_and_args(&args);
         run_compiler(
             args,
@@ -180,8 +182,9 @@ fn arg_value<'a, T: AsRef<str>>(args: &'a [T], find_arg: &str) -> Option<&'a str
     None
 }
 
-fn early_error(o: ErrorOutputType, msg: impl Into<DiagnosticMessage>) -> ! {
-    EarlyErrorHandler::new(o).early_error(msg)
+fn early_error(o: ErrorOutputType, msg: impl Into<DiagMessage>) -> ! {
+    let _ = EarlyDiagCtxt::new(o).early_err(msg);
+    std::process::exit(1)
 }
 
 struct ErrorHidingFileLoader;
@@ -203,8 +206,8 @@ impl FileLoader for ErrorHidingFileLoader {
         })
     }
 
-    fn read_binary_file(&self, path: &Path) -> std::io::Result<Vec<u8>> {
-        std::fs::read(path).map_err(|_| {
+    fn read_binary_file(&self, path: &Path) -> std::io::Result<std::rc::Rc<[u8]>> {
+        std::fs::read(path).map(|data| data.into()).map_err(|_| {
             // TODO: Should there be a way to preserve errors for debugging?
             replacement_error()
         })
@@ -244,7 +247,7 @@ impl FileLoader for PlrustcFileLoader {
         }
     }
 
-    fn read_binary_file(&self, path: &Path) -> std::io::Result<Vec<u8>> {
+    fn read_binary_file(&self, path: &Path) -> std::io::Result<std::rc::Rc<[u8]>> {
         if path.exists() && !path.is_dir() && self.is_inside_allowed_dir(path) {
             ErrorHidingFileLoader.read_binary_file(path)
         } else {

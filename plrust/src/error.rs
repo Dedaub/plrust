@@ -23,11 +23,11 @@ pub(crate) enum PlRustError {
     CargoBuildFail,
     #[error("Generating `Cargo.toml`")]
     GeneratingCargoToml,
-    #[error("Function `{0}` does not exist")]
+    #[error("Function `{0:?}` does not exist")]
     NoSuchFunction(pgrx::pg_sys::Oid),
-    #[error("Oid `{0}` was not mappable to a Rust type")]
+    #[error("Oid `{0:?}` was not mappable to a Rust type")]
     NoOidToRustMapping(pgrx::pg_sys::Oid),
-    #[error("Generated Rust type (`{1}`) for `{0}` was unparsable: {2}")]
+    #[error("Generated Rust type (`{1}`) for `{0:?}` was unparsable: {2}")]
     ParsingRustMapping(pgrx::pg_sys::Oid, String, syn::Error),
     #[error("Parsing `[code]` block: {0}")]
     ParsingCodeBlock(syn::Error),

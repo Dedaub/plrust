@@ -142,7 +142,7 @@ impl FnCrating {
         Ok((compose_lib_from_mods([opened, forbidden])?, lints))
     }
 
-    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = %self.db_oid, fn_oid = %self.fn_oid))]
+    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = ?self.db_oid, fn_oid = ?self.fn_oid))]
     pub(crate) fn cargo_toml(&self) -> eyre::Result<toml::value::Table> {
         let major_version = pgrx::pg_sys::get_pg_major_version_num();
         let version_feature = format!("pgrx/pg{major_version}");
@@ -178,7 +178,7 @@ impl FnCrating {
     }
 
     /// Provision into a given folder and return the crate directory.
-    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = %self.db_oid, fn_oid = %self.fn_oid, parent_dir = %parent_dir.display()))]
+    #[tracing::instrument(level = "debug", skip_all, fields(db_oid = ?self.db_oid, fn_oid = ?self.fn_oid, parent_dir = %parent_dir.display()))]
     pub(crate) fn provision(&self, parent_dir: &Path) -> eyre::Result<FnVerify> {
         let crate_name = self.crate_name();
         let crate_dir = parent_dir.join(&crate_name);

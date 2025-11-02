@@ -32,11 +32,12 @@ impl<'tcx> LateLintPass<'tcx> for PlrustSuspiciousTraitObject {
                 let is_trait_obj =
                     matches!(typeck_results.node_type(ty.hir_id).kind(), ty::Dynamic(..));
                 if is_trait_obj {
-                    cx.lint(
-                        PLRUST_SUSPICIOUS_TRAIT_OBJECT,
-                        "using trait objects in turbofish position is forbidden by PL/Rust",
-                        |b| b.set_span(expr.span),
-                    );
+                    cx.lint(PLRUST_SUSPICIOUS_TRAIT_OBJECT, |diag| {
+                        diag.primary_message(
+                            "using trait objects in turbofish position is forbidden by PL/Rust",
+                        );
+                        diag.span(expr.span);
+                    });
                 }
             }
         }
@@ -54,15 +55,17 @@ impl<'tcx> LateLintPass<'tcx> for PlrustSuspiciousTraitObject {
             _ => return,
         };
         for param in generics.params {
-            let hir::GenericParamKind::Type { default: Some(ty), .. } = &param.kind else {
+            let hir::GenericParamKind::Type {
+                default: Some(ty), ..
+            } = &param.kind
+            else {
                 continue;
             };
             if let hir::TyKind::TraitObject(..) = &ty.kind {
-                cx.lint(
-                    PLRUST_SUSPICIOUS_TRAIT_OBJECT,
-                    "trait objects in generic defaults are forbidden",
-                    |b| b.set_span(item.span),
-                );
+                cx.lint(PLRUST_SUSPICIOUS_TRAIT_OBJECT, |diag| {
+                    diag.primary_message("trait objects in generic defaults are forbidden");
+                    diag.span(item.span);
+                });
             }
         }
     }

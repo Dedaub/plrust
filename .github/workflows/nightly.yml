@@ -18,7 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        pg_version: ["pg13", "pg14", "pg15", "pg16"]
+        pg_version: ["pg13", "pg14", "pg15", "pg16", "pg17", "pg18"]
       fail-fast: false
 
     env:

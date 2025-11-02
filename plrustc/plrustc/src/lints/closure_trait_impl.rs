@@ -46,45 +46,31 @@ rustc_lint_defs::declare_lint_pass!(PlrustClosureTraitImpl => [PLRUST_CLOSURE_TR
 impl<'tcx> LateLintPass<'tcx> for PlrustClosureTraitImpl {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item<'tcx>) {
         let hir::ItemKind::Impl(impl_item) = item.kind else {
-            return
+            return;
         };
         for pred in impl_item.generics.predicates {
             let hir::WherePredicate::BoundPredicate(bound_pred) = pred else {
-                continue
+                continue;
             };
             // TODO: should we ignore cases where `bound_pred.bounded_ty` isn't
             // from one of `item.generics.params`?
             for bound in bound_pred.bounds {
                 match bound {
-                    hir::GenericBound::LangItemTrait(
-                        hir::LangItem::Fn
-                        | hir::LangItem::FnOnce
-                        | hir::LangItem::FnMut
-                        | hir::LangItem::FnPtrTrait,
-                        ..,
-                    ) => {
-                        cx.lint(
-                            PLRUST_CLOSURE_TRAIT_IMPL,
-                            "trait impls bounded on function traits are forbidden in PL/Rust",
-                            |b| b.set_span(bound_pred.span),
-                        );
-                    }
-                    hir::GenericBound::LangItemTrait(..) => {
-                        //  other stable builtin traits aren't useful for projecting a function's return type
-                    }
                     hir::GenericBound::Trait(poly_trait, ..) => {
                         if super::utils::has_fn_trait(cx, poly_trait) {
-                            cx.lint(
-                                PLRUST_CLOSURE_TRAIT_IMPL,
-                                "trait impls bounded on function traits are forbidden in PL/Rust",
-                                |b| b.set_span(bound_pred.span),
-                            );
+                            cx.lint(PLRUST_CLOSURE_TRAIT_IMPL, |diag| {
+                                diag.primary_message("trait impls bounded on function traits are forbidden in PL/Rust");
+                                diag.span(bound_pred.span);
+                            });
                         }
                         // TODO: if that fails, do we need to
                         // try_normalize_erasing_regions and retry?
                     }
                     hir::GenericBound::Outlives(..) => {
                         // Lifetime generics are irrelevant for guards against type projection
+                    }
+                    hir::GenericBound::Use(..) => {
+                        // Use bounds are not relevant for our analysis
                     }
                 }
             }

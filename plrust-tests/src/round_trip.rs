@@ -20,7 +20,7 @@ mod tests {
         )?;
         let tid = Spi::get_one::<pg_sys::ItemPointerData>("SELECT tid_roundtrip('(42, 99)'::tid)")?
             .expect("SPI result was null");
-        let (blockno, offno) = pgrx::item_pointer_get_both(tid);
+        let (blockno, offno) = pgrx::itemptr::item_pointer_get_both(tid);
         assert_eq!(blockno, 42);
         assert_eq!(offno, 99);
         Ok(())

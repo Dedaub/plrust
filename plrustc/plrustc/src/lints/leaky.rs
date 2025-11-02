@@ -18,11 +18,10 @@ impl<'tcx> LateLintPass<'tcx> for PlrustLeaky {
         ];
         for &path in paths {
             if super::utils::does_expr_call_path(cx, expr, path) {
-                cx.lint(
-                    PLRUST_LEAKY,
-                    "Leaky functions are forbidden in PL/Rust",
-                    |b| b.set_span(expr.span),
-                );
+                cx.lint(PLRUST_LEAKY, |diag| {
+                    diag.primary_message("Leaky functions are forbidden in PL/Rust");
+                    diag.span(expr.span);
+                });
             }
         }
     }

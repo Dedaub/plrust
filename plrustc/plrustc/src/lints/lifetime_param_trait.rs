@@ -13,11 +13,12 @@ impl<'tcx> LateLintPass<'tcx> for LifetimeParamTraitPass {
         if let hir::ItemKind::Trait(_is_auto, _unsafety, generics, ..) = &item.kind {
             for param in generics.params {
                 if let hir::GenericParamKind::Lifetime { .. } = param.kind {
-                    cx.lint(
-                        PLRUST_LIFETIME_PARAMETERIZED_TRAITS,
-                        "PL/Rust forbids declaring traits with generic lifetime parameters",
-                        |b| b.set_span(item.span),
-                    )
+                    cx.lint(PLRUST_LIFETIME_PARAMETERIZED_TRAITS, |diag| {
+                        diag.primary_message(
+                            "PL/Rust forbids declaring traits with generic lifetime parameters",
+                        );
+                        diag.span(item.span);
+                    })
                 }
             }
         }
