@@ -206,6 +206,7 @@ We need to set an environment variable so that our version of pgrx is preferred 
 export PLRUST_TRUSTED_PGRX_OVERRIDE='pgrx = { path = "/home/postgres/plrust/plrust-trusted-pgrx", package = "plrust-trusted-pgrx" }'
 cd ../plrust
 cargo pgrx install --release -c /usr/bin/pg_config
+sudo systemctl restart postgresql@18-main && sudo chown root -R /usr/share/postgresql/18/extension/ && sudo chown root -R /usr/lib/postgresql/18/lib/
 ```
 
 # Security Notice
