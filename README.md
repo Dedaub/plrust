@@ -162,6 +162,51 @@ This does mean that it is not possible to install both "trusted" and "untrusted"
 
 In the future, as `postgrestd` is ported to more platforms, we will seriously consider having both `plrust` and `plrustu`.  Right now, since "trusted" is only possible on Linux `x86_64`/`aarch64`, our objective is to drive production installations to be "trusted", while allowing non-Linux developers the ability to use `LANGUAGE plrust` too.
 
+# Notes with regards to supporting Postgres 18
+
+* Rust version had to be updated to 1.85.0
+* pgrx version 0.16.1
+
+Various changes in the underlying code that are (hopefully) correct.
+
+This version only creates an untrusted extension. The basic steps that need to be followed.
+
+```
+sudo chown postgres -R /usr/share/postgresql/18/extension/
+sudo chown postgres -R /usr/lib/postgresql/18/lib/
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+1) Proceed with installation (default)
+2) Customize installation
+3) Cancel installation
+```
+
+Choose (1) and then run:
+
+```
+. "$HOME/.cargo/env" 
+```
+
+```
+git clone https://github.com/tcdi/plrust.git
+cd plrust/plrust
+rustc -V
+rustup default 1.85.0
+cargo install cargo-pgrx --locked
+cargo pgrx init --pg18 /usr/bin/pg_config
+cd ../plrustc
+./build.sh
+mv ~/plrust/build/bin/plrustc ~/.cargo/bin/
+```
+
+We need to set an environment variable so that our version of pgrx is preferred over the one in crates.io
+
+```
+export PLRUST_TRUSTED_PGRX_OVERRIDE='pgrx = { path = "/home/postgres/plrust/plrust-trusted-pgrx", package = "plrust-trusted-pgrx" }'
+cd ../plrust
+cargo pgrx install --release -c /usr/bin/pg_config
+```
 
 # Security Notice
 
