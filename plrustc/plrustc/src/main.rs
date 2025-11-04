@@ -23,6 +23,7 @@ use rustc_span::source_map::FileLoader;
 use rustc_span::Symbol;
 use std::path::Path;
 
+
 const PLRUSTC_USER_CRATE_NAME: &str = "PLRUSTC_USER_CRATE_NAME";
 const PLRUSTC_USER_CRATE_ALLOWED_SOURCE_PATHS: &str = "PLRUSTC_USER_CRATE_ALLOWED_SOURCE_PATHS";
 
@@ -57,8 +58,7 @@ fn main() {
     rustc_driver::init_rustc_env_logger(handler);
     std::process::exit(rustc_driver::catch_with_exit_code(move || {
         let args =
-            rustc_driver::args::arg_expand_all(handler, &std::env::args().collect::<Vec<_>>())
-                .unwrap_or_else(|_| std::process::exit(1));
+            rustc_driver::args::arg_expand_all(handler, &std::env::args().collect::<Vec<_>>());
         let config = PlrustcConfig::from_env_and_args(&args);
         run_compiler(
             args,
@@ -206,7 +206,7 @@ impl FileLoader for ErrorHidingFileLoader {
         })
     }
 
-    fn read_binary_file(&self, path: &Path) -> std::io::Result<std::rc::Rc<[u8]>> {
+    fn read_binary_file(&self, path: &Path) -> std::io::Result<std::sync::Arc<[u8]>> {
         std::fs::read(path).map(|data| data.into()).map_err(|_| {
             // TODO: Should there be a way to preserve errors for debugging?
             replacement_error()
@@ -247,7 +247,7 @@ impl FileLoader for PlrustcFileLoader {
         }
     }
 
-    fn read_binary_file(&self, path: &Path) -> std::io::Result<std::rc::Rc<[u8]>> {
+    fn read_binary_file(&self, path: &Path) -> std::io::Result<std::sync::Arc<[u8]>> {
         if path.exists() && !path.is_dir() && self.is_inside_allowed_dir(path) {
             ErrorHidingFileLoader.read_binary_file(path)
         } else {
@@ -263,6 +263,10 @@ fn run_compiler(mut args: Vec<String>, callbacks: &mut PlrustcCallbacks) -> ! {
         let file_loader = callbacks.config.make_file_loader();
         let mut driver = rustc_driver::RunCompiler::new(&args, callbacks);
         driver.set_file_loader(Some(file_loader));
-        driver.run()
+        {
+          let _ = driver.run();  // accepts both () and Result<(), _>
+        }
+
+        Ok(())
     }));
 }

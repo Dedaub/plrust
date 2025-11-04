@@ -6,4 +6,4 @@ src = "src"
 title = "PL/Rust Guide"
 
 [preprocessor.variables.variables]
-toolchain_ver = "1.82.0"
+toolchain_ver = "1.85.0"

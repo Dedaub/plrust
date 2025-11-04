@@ -284,7 +284,7 @@ pub(crate) fn oid_to_syn_type(
         },
         PgOid::Custom(oid) => match PgHeapTuple::new_composite_type_by_oid(oid) {
             Ok(_) => {
-                let oid_u32 = oid.as_u32();
+                let oid_u32 = oid.to_u32();
                 quote! { pgrx::composite_type!(#oid_u32) }
             }
             Err(_) => return Err(PlRustError::NoOidToRustMapping(oid)),

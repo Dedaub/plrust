@@ -50,7 +50,7 @@ unsafe extern "C" fn plrust_process_utility_hook(
 
 #[cfg(not(feature = "pg13"))]
 #[pg_guard]
-unsafe extern "C" fn plrust_process_utility_hook(
+unsafe extern "C-unwind" fn plrust_process_utility_hook(
     pstmt: *mut pg_sys::PlannedStmt,
     query_string: *const ::std::os::raw::c_char,
     read_only_tree: bool,

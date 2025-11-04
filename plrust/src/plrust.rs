@@ -145,7 +145,7 @@ pub(crate) fn compile_function(fn_oid: pg_sys::Oid) -> eyre::Result<Output> {
 /// The name itself doesn't matter, but we keep it closely tied to the Postgres `pg_proc` catalog
 /// entry by including the that Oid value along with the database's Oid value.
 pub(crate) fn symbol_name(db_oid: pg_sys::Oid, fn_oid: pg_sys::Oid) -> String {
-    format!("plrust_fn_oid_{}_{}", db_oid.as_u32(), fn_oid.as_u32())
+    format!("plrust_fn_oid_{}_{}", db_oid.to_u32(), fn_oid.to_u32())
 }
 
 /// Represents the name PL/Rust gives the crate we generate to hold the user's function.  For any

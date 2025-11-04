@@ -119,7 +119,7 @@ impl PgProc {
 
     #[inline]
     pub(crate) fn generation_number(&self) -> u64 {
-        ((self.xmin() as u64) << 32_u64) | self.cmin() as u64
+        ((self.xmin().into_inner() as u64) << 32_u64) | self.cmin() as u64
     }
 
     pub(crate) fn ctid(&self) -> pg_sys::ItemPointerData {

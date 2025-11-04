@@ -8,6 +8,8 @@ Use of this source code is governed by the PostgreSQL license that can be found 
 */
 
 use std::ffi::CStr;
+
+use std::ffi::CString;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -16,22 +18,21 @@ use pgrx::pg_sys::AsPgCStr;
 use pgrx::{pg_sys, GucFlags};
 
 use crate::target::{CompilationTarget, CrossCompilationTarget, TargetErr};
-use crate::{target, DEFAULT_LINTS};
+use crate::{target};
 
-static PLRUST_WORK_DIR: GucSetting<Option<&'static CStr>> =
-    GucSetting::<Option<&'static CStr>>::new(None);
-pub(crate) static PLRUST_PATH_OVERRIDE: GucSetting<Option<&'static CStr>> =
-    GucSetting::<Option<&'static CStr>>::new(None);
-static PLRUST_TRACING_LEVEL: GucSetting<Option<&'static CStr>> =
-    GucSetting::<Option<&'static CStr>>::new(None);
-pub(crate) static PLRUST_ALLOWED_DEPENDENCIES: GucSetting<Option<&'static CStr>> =
-    GucSetting::<Option<&'static CStr>>::new(None);
-static PLRUST_COMPILATION_TARGETS: GucSetting<Option<&'static CStr>> =
-    GucSetting::<Option<&'static CStr>>::new(None);
-pub(crate) static PLRUST_COMPILE_LINTS: GucSetting<Option<&'static CStr>> =
-    GucSetting::<Option<&'static CStr>>::new(Some(DEFAULT_LINTS));
-pub(crate) static PLRUST_REQUIRED_LINTS: GucSetting<Option<&'static CStr>> =
-    GucSetting::<Option<&'static CStr>>::new(None);
+static PLRUST_WORK_DIR: GucSetting<Option<CString>> =
+    GucSetting::<Option<CString>>::new(None);
+pub(crate) static PLRUST_PATH_OVERRIDE: GucSetting<Option<CString>> =
+    GucSetting::<Option<CString>>::new(None);
+static PLRUST_TRACING_LEVEL: GucSetting<Option<CString>> =
+    GucSetting::<Option<CString>>::new(None);
+pub(crate) static PLRUST_ALLOWED_DEPENDENCIES: GucSetting<Option<CString>> =
+    GucSetting::<Option<CString>>::new(None);
+static PLRUST_COMPILATION_TARGETS: GucSetting<Option<CString>> =
+    GucSetting::<Option<CString>>::new(None);
+
+pub(crate) static PLRUST_REQUIRED_LINTS: GucSetting<Option<CString>> =
+    GucSetting::<Option<CString>>::new(None);
 pub(crate) static PLRUST_OFFLINE_MODE: GucSetting<bool> = GucSetting::<bool>::new(false);
 
 const PGRX_VERSION_FROM_BUILD_RS: &'static str = concat!(
@@ -42,88 +43,92 @@ const PGRX_VERSION_FROM_BUILD_RS: &'static str = concat!(
     "\0" // NULL-terminate the string
 );
 
-pub(crate) static PLRUST_TRUSTED_PGRX_VERSION: GucSetting<Option<&'static CStr>> =
-    GucSetting::<Option<&'static CStr>>::new(Some(unsafe {
+pub(crate) static PLRUST_COMPILE_LINTS: GucSetting<Option<CString>> =
+    GucSetting::<Option<CString>>::new(None);
+
+pub(crate) static PLRUST_TRUSTED_PGRX_VERSION: GucSetting<Option<CString>> =
+    GucSetting::<Option<CString>>::new(Some(unsafe {
         CStr::from_bytes_with_nul_unchecked(PGRX_VERSION_FROM_BUILD_RS.as_bytes())
     }));
 
 pub(crate) fn init() {
+    // Initialize PLRUST_COMPILE_LINTS before registering
     GucRegistry::define_string_guc(
-        "plrust.work_dir",
-        "The directory where pl/rust will build functions with cargo",
-        "The directory where pl/rust will build functions with cargo",
+        c"plrust.work_dir",
+        c"The directory where pl/rust will build functions with cargo",
+        c"The directory where pl/rust will build functions with cargo",
         &PLRUST_WORK_DIR,
         GucContext::Sighup,
         GucFlags::default(),
     );
 
     GucRegistry::define_string_guc(
-          "plrust.PATH_override", 
-          "The $PATH setting to use for building plrust user functions",
-          "It may be necessary to override $PATH in order to find compilation dependencies such as `cargo`, `cc`, etc",
+          c"plrust.PATH_override", 
+          c"The $PATH setting to use for building plrust user functions",
+          c"It may be necessary to override $PATH in order to find compilation dependencies such as `cargo`, `cc`, etc",
           &PLRUST_PATH_OVERRIDE,
           GucContext::Sighup,
           GucFlags::default(),
     );
 
     GucRegistry::define_string_guc(
-        "plrust.tracing_level",
-        "The tracing level to use while running pl/rust",
-        "The tracing level to use while running pl/rust. Should be `error`, `warn`, `info`, `debug`, or `trace`",
+        c"plrust.tracing_level",
+        c"The tracing level to use while running pl/rust",
+        c"The tracing level to use while running pl/rust. Should be `error`, `warn`, `info`, `debug`, or `trace`",
         &PLRUST_TRACING_LEVEL,
         GucContext::Sighup,
         GucFlags::default(),
     );
 
     GucRegistry::define_string_guc(
-        "plrust.allowed_dependencies",
-        "The full path of a toml file containing crates and versions allowed when creating PL/Rust functions",
-        "The full path of a toml file containing crates and versions allowed when creating PL/Rust functions",
+        c"plrust.allowed_dependencies",
+        c"The full path of a toml file containing crates and versions allowed when creating PL/Rust functions",
+        c"The full path of a toml file containing crates and versions allowed when creating PL/Rust functions",
         &PLRUST_ALLOWED_DEPENDENCIES,
         GucContext::Sighup,
         GucFlags::default(),
     );
 
     GucRegistry::define_string_guc(
-        "plrust.compilation_targets",
-        "A comma-separated list of architectures to target for cross compilation.  Supported values are: x86_64, aarch64",
-        "Useful for when it's known a system will replicate to a Postgres server on a different CPU architecture",
+        c"plrust.compilation_targets",
+        c"A comma-separated list of architectures to target for cross compilation.  Supported values are: x86_64, aarch64",
+        c"Useful for when it's known a system will replicate to a Postgres server on a different CPU architecture",
         &PLRUST_COMPILATION_TARGETS,
         GucContext::Postmaster,
         GucFlags::default(),
     );
 
     GucRegistry::define_string_guc(
-        "plrust.compile_lints",
-        "A comma-separated list of Rust code lints to apply to user functions during compilation",
-        "If unspecified, PL/Rust will use a set of defaults",
+        c"plrust.compile_lints",
+        c"A comma-separated list of Rust code lints to apply to user functions during compilation",
+        c"If unspecified, PL/Rust will use a set of defaults",
         &PLRUST_COMPILE_LINTS,
         GucContext::Sighup,
         GucFlags::default(),
     );
 
     GucRegistry::define_string_guc(
-        "plrust.required_lints",
-        "A comma-separated list of Rust code lints that are required to have been applied to a PL/Rust user function before PL/Rust will execute it",
-        "If unspecified, the default is the empty set",
+        c"plrust.required_lints",
+        c"A comma-separated list of Rust code lints that are required to have been applied to a PL/Rust user function before PL/Rust will execute it",
+        c"If unspecified, the default is the empty set",
         &PLRUST_REQUIRED_LINTS,
         GucContext::Sighup,
         GucFlags::default(),
     );
 
     GucRegistry::define_string_guc(
-        "plrust.trusted_pgrx_version",
-        "The `plrust-trusted-pgrx` crate version to use when compiling user functions",
-        "If unspecified, the default is the version found when compiling plrust itself",
+        c"plrust.trusted_pgrx_version",
+        c"The `plrust-trusted-pgrx` crate version to use when compiling user functions",
+        c"If unspecified, the default is the version found when compiling plrust itself",
         &PLRUST_TRUSTED_PGRX_VERSION,
         GucContext::Sighup,
         GucFlags::default(),
     );
 
     GucRegistry::define_bool_guc(
-        "plrust.offline_mode",
-        "Run cargo in offline mode",
-        "If unspecified, the default is false",
+        c"plrust.offline_mode",
+        c"Run cargo in offline mode",
+        c"If unspecified, the default is false",
         &PLRUST_OFFLINE_MODE,
         GucContext::Userset,
         GucFlags::default(),
@@ -218,7 +223,8 @@ pub(crate) fn get_trusted_pgrx_version() -> String {
         .get()
         .expect("unable to determine `plrust-trusted-pgrx` version") // shouldn't happen since we set a known default
         .to_str()
-        .expect("plrust.plrust_trusted_pgrx_version is not valid UTF8");
+        .expect("plrust.plrust_trusted_pgrx_version is not valid UTF8")
+        .to_string();
 
     // we always want this specific version
     format!("={}", version)

@@ -49,7 +49,7 @@ impl<'tcx> LateLintPass<'tcx> for PlrustClosureTraitImpl {
             return;
         };
         for pred in impl_item.generics.predicates {
-            let hir::WherePredicate::BoundPredicate(bound_pred) = pred else {
+            let hir::WherePredicateKind::BoundPredicate(bound_pred) = pred.kind else {
                 continue;
             };
             // TODO: should we ignore cases where `bound_pred.bounded_ty` isn't
@@ -57,10 +57,10 @@ impl<'tcx> LateLintPass<'tcx> for PlrustClosureTraitImpl {
             for bound in bound_pred.bounds {
                 match bound {
                     hir::GenericBound::Trait(poly_trait, ..) => {
-                        if super::utils::has_fn_trait(cx, poly_trait) {
+                        if super::utils::has_fn_trait(cx, &poly_trait) {
                             cx.lint(PLRUST_CLOSURE_TRAIT_IMPL, |diag| {
                                 diag.primary_message("trait impls bounded on function traits are forbidden in PL/Rust");
-                                diag.span(bound_pred.span);
+                                diag.span(poly_trait.span);
                             });
                         }
                         // TODO: if that fails, do we need to

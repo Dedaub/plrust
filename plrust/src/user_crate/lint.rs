@@ -8,6 +8,7 @@ use quote::{ToTokens, TokenStreamExt};
 use serde::{Deserialize, Serialize};
 
 use crate::gucs::{PLRUST_COMPILE_LINTS, PLRUST_REQUIRED_LINTS};
+use crate::DEFAULT_LINTS;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Ord, PartialOrd, PartialEq, Eq, Hash)]
 pub(crate) struct Lint(String);
@@ -90,11 +91,12 @@ impl ToTokens for Lint {
 
 /// Use the set of lints configured via the `plrust.compile_lints` GUC
 pub(crate) fn compile_lints() -> LintSet {
-    PLRUST_COMPILE_LINTS
-        .get()
-        .unwrap_or_default()
-        .to_str()
-        .expect("plrust.compile_lints is not valid UTF8")
+     let lints_str = match PLRUST_COMPILE_LINTS.get() {
+        Some(cstring) => cstring.to_str().expect("plrust.compile_lints is not valid UTF8").to_string(),
+        None => DEFAULT_LINTS.to_string(),  // Use the default when GUC not set
+    };
+
+    lints_str
         .split(',')
         .filter(|x| !x.is_empty())
         .map(|s| s.trim().into())

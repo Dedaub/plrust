@@ -22,7 +22,7 @@ impl<'tcx> LateLintPass<'tcx> for PlrustFnPointer {
             }
             hir::TyKind::TraitObject(traits, ..) => {
                 for poly_trait in *traits {
-                    if super::utils::has_fn_trait(cx, &poly_trait.0) {
+                    if super::utils::has_fn_trait(cx, &poly_trait) {
                         cx.lint(PLRUST_FN_POINTERS, |diag| {
                             diag.primary_message(
                                 "Use of function trait objects is forbidden in PL/Rust",

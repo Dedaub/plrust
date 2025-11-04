@@ -47,7 +47,6 @@ impl PlrustStaticImpls {
             | TyKind::Never
             // New variants in Rust 1.80.0
             | TyKind::InferDelegation(..)
-            | TyKind::AnonAdt(..)
             | TyKind::Pat(..) => false,
             // Found one!
             TyKind::Ref(Lifetime { res: Static, .. }, _) | TyKind::TraitObject(_, Lifetime { res: Static, .. }, _) => true,
@@ -61,7 +60,7 @@ impl PlrustStaticImpls {
 
             TyKind::TraitObject(polytrait, ..) => {
                 polytrait.iter().any(|poly| {
-                    self.segments_have_static(poly.0.trait_ref.path.segments)
+                    self.segments_have_static(poly.trait_ref.path.segments)
                 })
             }
             // Something like `Vec<T>` or `Option<T>`. Need to look inside...
@@ -75,6 +74,7 @@ impl PlrustStaticImpls {
                 };
                 self.segments_have_static(segs)
             }
+           _ => false,
         }
     }
 

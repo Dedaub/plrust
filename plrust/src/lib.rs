@@ -56,7 +56,6 @@ pub mod tests;
 use crate::allow_list::AllowedDependencyTuple;
 use error::PlRustError;
 use pgrx::{pg_getarg, prelude::*};
-use std::ffi::CStr;
 
 #[cfg(any(test, feature = "pg_test"))]
 pub use tests::pg_test;
@@ -88,9 +87,7 @@ $$;
 // This enables the code checking not only for `unsafe {}`
 // but also "unsafe attributes" which are considered unsafe
 // but don't have the `unsafe` token.
-const DEFAULT_LINTS: &'static CStr = unsafe {
-    CStr::from_bytes_with_nul_unchecked(
-        b"\
+const DEFAULT_LINTS: &str = "\
     plrust_extern_blocks, \
     plrust_lifetime_parameterized_traits, \
     plrust_autotrait_impls, \
@@ -108,12 +105,10 @@ const DEFAULT_LINTS: &'static CStr = unsafe {
     unsafe_code, \
     deprecated, \
     soft_unstable\
-\0", // NOTE:  This is a null-terminated string as it's used statically as a &CStr
-    )
-};
+";
 
 #[pg_guard]
-fn _PG_init() {
+pub extern "C-unwind" fn _PG_init() {
     // Must be loaded with shared_preload_libraries
     unsafe {
         // SAFETY:  We're required to be loaded as a "shared preload library", and Postgres will
